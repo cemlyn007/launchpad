@@ -19,8 +19,6 @@ function build_wheel() {
   TMPDIR="$1"
   DESTDIR="$2"
   RELEASE_FLAG="$3"
-  TF_VERSION_FLAG="$4"
-  REVERB_VERSION_FLAG="$5"
 
   # Before we leave the top-level directory, make sure we know how to
   # call python.
@@ -33,7 +31,8 @@ function build_wheel() {
   pushd ${TMPDIR} > /dev/null
 
   echo $(date) : "=== Building wheel"
-  "${PYTHON_BIN_PATH}" setup.py bdist_wheel ${PKG_NAME_FLAG} ${RELEASE_FLAG} ${TF_VERSION_FLAG} ${REVERB_VERSION_FLAG} --plat manylinux2014_x86_64 > /dev/null
+  # "${PYTHON_BIN_PATH}" setup.py bdist_wheel ${PKG_NAME_FLAG} ${RELEASE_FLAG} --plat manylinux2014_x86_64 > /dev/null
+  "${PYTHON_BIN_PATH}" setup.py bdist_wheel ${PKG_NAME_FLAG} ${RELEASE_FLAG} > /dev/null
   DEST=${TMPDIR}/dist/
   if [[ ! "$TMPDIR" -ef "$DESTDIR" ]]; then
     mkdir -p ${DESTDIR}
@@ -58,10 +57,15 @@ function prepare_src() {
   cp LICENSE ${TMPDIR}
 
   # Copy all Python files, requirements and so libraries.
-  cp --parents `find -name \*.py*` ${TMPDIR}
-  cp --parents `find -name requirements.txt` ${TMPDIR}
+  cd bazel-bin && find . -name "*.py*" -exec rsync -R {} ${TMPDIR} \; && cd ..
+  cd launchpad && find . -name "*.py*" -exec rsync -R {} ${TMPDIR}/launchpad \; && cd ..
+  cd courier && find . -name "*.py*" -exec rsync -R {} ${TMPDIR}/courier \; && cd ..
+  cd reverb && find . -name "*.py*" -exec rsync -R {} ${TMPDIR}/reverb \; && cd ..
+  find . -name requirements.txt -exec cp -f {} ${TMPDIR} \;
   cp launchpad/launch/run_locally/decorate_output ${TMPDIR}/launchpad/launch/run_locally/decorate_output
-  cd bazel-bin/courier && cp --parents `find -type f -name \*.so | grep -v runfiles` ${TMPDIR}/courier && cd ../..
+
+  cd bazel-bin/courier && find . -name "*.so" -exec rsync -R {} ${TMPDIR}/courier \; && cd ../..
+  cd bazel-bin/courier && find . -name "*.dylib" -exec rsync -R {} ${TMPDIR}/courier \; && cd ../..
   mv ${TMPDIR}/courier/serialization/*.so ${TMPDIR}/courier/python/
 
   mv ${TMPDIR}/launchpad/pip_package/setup.py ${TMPDIR}
@@ -88,10 +92,6 @@ function usage() {
 
 function main() {
   RELEASE_FLAG=""
-  # Tensorflow version dependency passed to setup.py, e.g. tensorflow>=2.3.0.
-  TF_VERSION_FLAG=""
-  # Reverb version dependency passed to setup.py, e.g. dm-reverb==0.3.0.
-  REVERB_VERSION_FLAG=""
   # This is where the source code is copied and where the whl will be built.
   DST_DIR=""
 
@@ -104,12 +104,6 @@ function main() {
     elif [[ "$1" == "--dst" ]]; then
       shift
       DST_DIR=$1
-    elif [[ "$1" == "--tf_package" ]]; then
-      shift
-      TF_VERSION_FLAG="--tf_package $1"
-    elif [[ "$1" == "--reverb_package" ]]; then
-      shift
-      REVERB_VERSION_FLAG="--reverb_package $1"
     fi
 
     if [[ -z "$1" ]]; then
@@ -124,7 +118,7 @@ function main() {
   fi
 
   prepare_src "$TMPDIR"
-  build_wheel "$TMPDIR" "$DST_DIR" "$RELEASE_FLAG" "$TF_VERSION_FLAG" "$REVERB_VERSION_FLAG"
+  build_wheel "$TMPDIR" "$DST_DIR" "$RELEASE_FLAG"
 }
 
 main "$@"

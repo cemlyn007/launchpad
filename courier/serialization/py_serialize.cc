@@ -235,7 +235,8 @@ absl::StatusOr<PyArrayObject*> DeserializeObjectArray(
     TensorLookup& tensor_lookup) {
   // Allocate the output array.
   auto result = MakeSafePyPtr<PyArrayObject>(PyArray_SimpleNewFromDescr(
-      serialized.shape_size(), const_cast<int64_t*>(serialized.shape().data()),
+      // TODO: issue is shape data is int64 (maybe pointer) but NumyPy wants long pointer (on darwin).
+      serialized.shape_size(), reinterpret_cast<const npy_intp*>(const_cast<int64_t*>(serialized.shape().data())),
       PyArray_DescrFromType(NPY_OBJECT)));
   COURIER_RET_CHECK(result != nullptr);
 

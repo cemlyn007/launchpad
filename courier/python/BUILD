@@ -1,36 +1,59 @@
-load("//launchpad:build_defs.bzl", "lp_pybind_extension")
+load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
 
 licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
 
-lp_pybind_extension(
+pybind_extension(
     name = "router",
     srcs = ["router.cc"],
+    copts = [
+        "-fno-strict-aliasing",
+    ],
+    linkopts = [
+        "-Wl,-install_name,@rpath/router.so",
+        "-Wl,-rpath,@loader_path/..",
+        "-Wl,-rpath,@loader_path/../platform/default",
+    ],
     deps = [
         "//courier:router",
-        "@pybind11",
         "@pybind11_abseil//pybind11_abseil:absl_casters",
         "@pybind11_abseil//pybind11_abseil:status_casters",
     ],
 )
 
-lp_pybind_extension(
+pybind_extension(
     name = "server",
     srcs = ["server.cc"],
+    copts = [
+        "-fno-strict-aliasing",
+    ],
+    linkopts = [
+        "-Wl,-install_name,@rpath/server.so",
+        "-Wl,-rpath,@loader_path/..",
+        "-Wl,-rpath,@loader_path/../platform/default",
+    ],
     deps = [
+        "//courier:router",
         "//courier:server",
-        "@pybind11",
         "@pybind11_abseil//pybind11_abseil:absl_casters",
         "@pybind11_abseil//pybind11_abseil:status_casters",
     ],
 )
 
-lp_pybind_extension(
+pybind_extension(
     name = "py_client",
     srcs = [
         "py_client.cc",
         "py_client.h",
+    ],
+    copts = [
+        "-fno-strict-aliasing",
+    ],
+    linkopts = [
+        "-Wl,-install_name,@rpath/py_client.so",
+        "-Wl,-rpath,@loader_path/..",
+        "-Wl,-rpath,@loader_path/../platform/default",
     ],
     deps = [
         "//courier:client",
@@ -46,24 +69,28 @@ lp_pybind_extension(
         "@com_google_absl//absl/time",
         "@pybind11_abseil//pybind11_abseil:absl_casters",
         "@pybind11_abseil//pybind11_abseil:status_casters",
+        "@upb",
     ],
 )
 
 py_library(
     name = "client",
     srcs = ["client.py"],
+    data = [":py_client.so"],
     srcs_version = "PY3",
-    deps = [":py_client"],
 )
 
 py_library(
     name = "py_server_no_tf",
     srcs = ["py_server.py"],
+    data = [
+        ":router.so",
+        ":server.so",
+        "//courier/handlers/python:pybind.so",
+    ],
     srcs_version = "PY3",
-    deps = [
-        ":router",
-        ":server",
-        "//courier/handlers/python:pybind",
+    tags = [
+        "ignore_for_dep=third_party.py.tensorflow.compat.v1",
     ],
 )
 

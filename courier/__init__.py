@@ -1,13 +1,3 @@
-from ctypes import cdll
-import pkgutil
-import os
-tf = pkgutil.get_loader("tensorflow")
-if tf:
-  cdll.LoadLibrary(os.path.join(os.path.dirname(tf.path), 'libtensorflow_framework.so.2'))  # pytype:disable=attribute-error
-del tf
-del cdll
-del pkgutil
-del os
 # Copyright 2020 DeepMind Technologies Limited. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +13,7 @@ del os
 # limitations under the License.
 
 """Courier module."""
+import tensorflow
 from courier.python.client import Client  # pytype: disable=import-error
 from courier.python.client import list_methods  # pytype: disable=import-error
 from courier.python.py_server import Server  # pytype: disable=import-error
